@@ -25,6 +25,15 @@ class Job:
         self.state = JobState.pending
         self.lock = threading.RLock()
 
+    def json(self):
+        return {
+            "id": self.id,
+            "state": self.state.name,
+            "rejected_by": [w.id for w in self.rejected_by],
+            "considered_by": self.considered_by.id if self.considered_by else None,
+            "performed_by": self.performed_by.id if self.performed_by else None,
+        }
+
     def locked(func):
         @functools.wraps(func)
         def lock_wrapper(self, *args, **kwargs):
@@ -43,7 +52,7 @@ class Job:
     def accepted(self, worker, args):
         assert self.state == JobState.consideration
         self.considered_by = None
-        self.preformed_by = worker
+        self.performed_by = worker
         self.state = JobState.running
         cherrypy.engine.publish("job-state-change", self)
 
@@ -70,7 +79,7 @@ class Job:
     @locked
     def aborted(self, worker, args):
         assert self.state == JobState.running
-        self.preformed_by = None
+        self.performed_by = None
         self.state = JobState.pending
         cherrypy.engine.publish("job-state-change", self)
 
@@ -86,6 +95,7 @@ class JobManager(Manager):
             self.add_job()
 
     def start(self):
+        self.bus.log("JM: startup")
         self.bus.subscribe("free-workers", self.free_workers)
         self.bus.subscribe("view-jobs", self.view_jobs)
 

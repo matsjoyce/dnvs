@@ -32,6 +32,15 @@ class Worker:
     def address(self):
         return self.ws.address
 
+    def json(self):
+        return {
+            "id": self.id,
+            "address": self.address,
+            "state": self.state.name,
+            "current_job": self.current_job.id if self.current_job else None,
+            "considering_job": self.considering_job.id if self.considering_job else None
+        }
+
     def locked(func):
         @functools.wraps(func)
         def lock_wrapper(self, *args, **kwargs):
@@ -137,6 +146,7 @@ class WorkerManager(Manager):
         return lock_wrapper
 
     def start(self):
+        self.bus.log("WM: startup")
         self.bus.subscribe("worker-connected", self.worker_connected)
         self.bus.subscribe("worker-disconnected", self.worker_disconnected)
         self.bus.subscribe("worker-state-change", self.worker_state_change)

@@ -8,9 +8,9 @@ from .managers import Manager
 STATIC_DIR = pathlib.Path(__file__).parent.parent / "ui"
 
 CONFIG = {
-    '/static': {
-        'tools.staticdir.on' : True,
-        'tools.staticdir.dir' : STATIC_DIR
+    "/static": {
+        "tools.staticdir.on": True,
+        "tools.staticdir.dir": STATIC_DIR
     }
 }
 CONFIG.update(API_CONFIG)
@@ -29,9 +29,9 @@ def run(address, port):
     cherrypy.config.update({
         "server.socket_host": address,
         "server.socket_port": port,
-        'log.screen': False,
-        'log.access_file': '',
-        'log.error_file': ''
+        "log.screen": False,
+        "log.access_file": "",
+        "log.error_file": ""
     })
     Manager.register_managers(cherrypy.engine)
     cherrypy.quickstart(Root(), "/", config=CONFIG)

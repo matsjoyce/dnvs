@@ -17,7 +17,7 @@ sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent.parent))
 
 try:
     from . import run
-except:
+except ImportError:
     from client import run
 
 iridescence.quick_setup()

@@ -19,10 +19,5 @@ class WorkersAPI:
     def GET(self):
         workers, = cherrypy.engine.publish("view-workers")
         return {
-            "workers": [{
-                "id": worker.id,
-                "address": worker.address,
-                "state": worker.state.name,
-                "current_job": worker.current_job.id if worker.current_job else None
-            } for worker in workers.values()]
+            "workers": [worker.json() for worker in workers.values()]
         }

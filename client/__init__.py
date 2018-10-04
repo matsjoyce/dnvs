@@ -48,7 +48,7 @@ class Worker(WebSocketClient):
         return random.randrange(0, 2)
 
     def perform_job(self, job):
-        time.sleep(5)
+        time.sleep(random.randrange(3, 20))
         return True
 
     def send_command(self, command, **args):
