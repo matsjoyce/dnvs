@@ -5,33 +5,33 @@ import $ from "jquery";
 import { WorkersView } from "./workers_view.jsx";
 import { JobsView } from "./jobs_view.jsx";
 import { SubnetsView } from "./subnets_view.jsx";
+import { DATA_ACTIONS, DATA_STORE } from "./store.jsx";
 
 
 export class App extends React.Component {
   constructor(props) {
         super(props);
         this.state = {
-            view: "workers",
-            workers: {}
+            view: "jobs"
         };
-
-        this.change_to_network = () => this.setState({view: "network"});
-        this.change_to_workers = () => this.setState({view: "workers"});
-        this.change_to_jobs = () => this.setState({view: "jobs"});
     }
+
+    change_to_network = () => this.setState({view: "network"});
+    change_to_workers = () => this.setState({view: "workers"});
+    change_to_jobs = () => this.setState({view: "jobs"});
 
     current_view() {
         if (this.state.view == "network") {
             return <SubnetsView />
         }
         else if (this.state.view == "workers") {
-            return <WorkersView workers={this.state.workers} />
+            return <WorkersView />
         }
         else if (this.state.view == "jobs") {
-            return <JobsView jobs={this.state.jobs} />
+            return <JobsView />
         }
     }
-
+/*
     connect_ws() {
         this.websocket = new WebSocket("ws://" + window.location.host + "/api/ws/broadcast");
         this.websocket.onmessage = this.on_ws_message.bind(this);
@@ -79,7 +79,7 @@ export class App extends React.Component {
     componentDidMount() {
         this.load_initial_data();
         this.connect_ws();
-    }
+    }*/
 
     render() {
         return <>

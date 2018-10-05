@@ -1,5 +1,21 @@
+$body-bg: black;
+$body-color: white;
+
+
 @import "node_modules/bootstrap/scss/bootstrap";
 
 .navbar-brand {
     font-size: 1.5rem;
+}
+
+.worker, .job {
+    &:not(:last-child) {
+        border-bottom: 1px solid $gray-700;
+    }
+    padding: 1rem 0;
+}
+
+.indent {
+    border-left: 2px solid $gray-700;
+    padding-left: 0.5rem;
 }

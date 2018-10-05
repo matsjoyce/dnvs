@@ -125,7 +125,12 @@ class Worker:
     def disconnect(self):
         if self.state is WorkerState.working:
             self.current_job.aborted(self, {})
+            self.current_job = None
+        elif self.state is WorkerState.considering:
+            self.considering_job.rejected(self, {})
+            self.considering_job = None
         self.state = WorkerState.disconnected
+        cherrypy.engine.publish("worker-state-change", self)
 
 
 class WorkerManager(Manager):
@@ -168,8 +173,7 @@ class WorkerManager(Manager):
     def worker_disconnected(self, ws):
         id = ws.worker_id
         self.logger.info(f"Worker {id} disconnected")
-        self.free_workers.discard(self.workers[id])
-        self.workers.pop(id).disconnect()
+        self.workers[id].disconnect()
 
     # Safety first!
     # To ensure multiple free-workers events are not being handled at once we only fire the event when a worker becomes idle.

@@ -48,8 +48,8 @@ class WebSocketAPI:
 
     @cherrypy.expose
     def broadcast(self):
-        cherrypy.request.ws_handler.address = cherrypy.request.remote.ip
+        cherrypy.request.ws_handler.address = f"{cherrypy.request.remote.ip}:{cherrypy.request.remote.port}"
 
     @cherrypy.expose
     def worker(self):
-        cherrypy.request.ws_handler.address = cherrypy.request.remote.ip
+        cherrypy.request.ws_handler.address = f"{cherrypy.request.remote.ip}:{cherrypy.request.remote.port}"
