@@ -1,61 +1,42 @@
 import React from "react";
 
 import { DATA_ACTIONS, DATA_STORE } from "./store.jsx";
-import { isSetsEqual, nullOrUndefined } from "./utils.jsx";
+import { isSetsEqual, nullOrUndefined, ifNotNU } from "./utils.jsx";
+import { Item, ItemTable, ItemTableRow } from "./item.jsx";
 import { Worker } from "./workers_view.jsx";
 
 
-export class Job extends React.PureComponent {
-    constructor(props) {
-        super(props);
-        this.state = {
-            job: {}
-        };
-        this.onChange = this.onChange.bind(this);
-    }
-
-    componentDidMount() {
-        DATA_STORE.listen(this.onChange);
-        this.setState({
-            job: DATA_STORE.state.getJob(this.props.job_id)
-        });
-    }
-
-    componentWillUnmount() {
-        DATA_STORE.unlisten(this.onChange);
-    }
-
-    onChange(state) {
-        this.setState({
-            job: state.getJob(this.props.job_id)
-        });
-    }
+export class Job extends Item {
+    getValue = state => state.getJob(this.props.id);
+    idFormat = x => "J-" + x;
 
     color_for_state() {
-        if (this.state.job.state == "finished") {
+        if (this.state.data.state == "finished") {
             return "success";
         }
-        else if (this.state.job.state == "running") {
+        else if (this.state.data.state == "running") {
             return "info";
         }
-        else if (this.state.job.state == "pending") {
-            return "secondary";
+        else if (this.state.data.state == "pending") {
+            return "light";
         }
-        else if (this.state.job.state == "failed") {
+        else if (this.state.data.state == "failed") {
             return "danger";
         }
         return "warning";
     }
 
-    render() {
-        console.log("RJ", this.state.job);
-        return <div className={"job"/* + (this.props.embedded ? "" : " row")*/}>
-            <div className="item-name">{this.state.job.id}</div>
-            <div className="item-state"><span className={"text-" + this.color_for_state()}>{this.state.job.state}</span></div>
-            {!nullOrUndefined(this.state.job.performed_by) && !this.props.embedded ?
-                <div className="indent">
-                    <Worker worker_id={this.state.job.performed_by} key={this.state.job.performed_by} embedded={true} />
-                </div> : null}
+    renderExpanded() {
+        return <div className="item" onClick={this.collapse}>
+            <div className="item-name">{this.idFormat(this.state.data.id)}</div>
+            <ItemTable>
+                <ItemTableRow name="State" value={
+                    <span className={"text-" + this.color_for_state()}>{this.state.data.state}</span>
+                }/>
+                <ItemTableRow name="Performed By" value={
+                    ifNotNU(this.state.data.performed_by, id => <Worker id={id} key={id} />)
+                }/>
+            </ItemTable>
         </div>;
     }
 }
@@ -93,7 +74,7 @@ export class JobsView extends React.PureComponent {
     render() {
         console.log("RJV", this.state.job_ids);
         return <>
-            {[...this.state.job_ids].sort().map(id => <Job key={id} job_id={id} />)}
+            {[...this.state.job_ids].sort().map(id => <Job key={id} id={id} initial_expanded={true} collapseable={false} />)}
         </>;
     }
 }

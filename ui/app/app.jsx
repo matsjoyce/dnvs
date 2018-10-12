@@ -31,55 +31,6 @@ export class App extends React.Component {
             return <JobsView />
         }
     }
-/*
-    connect_ws() {
-        this.websocket = new WebSocket("ws://" + window.location.host + "/api/ws/broadcast");
-        this.websocket.onmessage = this.on_ws_message.bind(this);
-//         this.websocket.onclose = this.on_ws_close.bind(this);
-    }
-
-    load_initial_data() {
-        $.getJSON("/api/worker").then(data => {
-            var workers = {};
-            data.data.workers.map(worker => workers[worker.id] = worker);
-            this.setState({
-                workers: workers
-            })
-        });
-        $.getJSON("/api/job").then(data => {
-            var jobs = {};
-            data.data.jobs.map(job => jobs[job.id] = job);
-            this.setState({
-                jobs: jobs
-            })
-        });
-    }
-
-    on_ws_message(message) {
-        var data = JSON.parse(message.data);
-        if (data.type == "worker") {
-            this.setState({
-                workers: update(this.state.workers, {[data.data.id]: {
-                    $set: data.data
-                }})
-            })
-        }
-        else if (data.type == "job") {
-            this.setState({
-                jobs: update(this.state.jobs, {[data.data.id]: {
-                    $set: data.data
-                }})
-            })
-        }
-        else {
-            console.log(data)
-        }
-    }
-
-    componentDidMount() {
-        this.load_initial_data();
-        this.connect_ws();
-    }*/
 
     render() {
         return <>

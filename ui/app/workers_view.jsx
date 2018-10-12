@@ -1,64 +1,46 @@
 import React from "react";
 
 import { DATA_ACTIONS, DATA_STORE } from "./store.jsx";
-import { isSetsEqual, nullOrUndefined } from "./utils.jsx";
+import { isSetsEqual, nullOrUndefined, withDefault, ifNotNU } from "./utils.jsx";
+import { Item, ItemTable, ItemTableRow } from "./item.jsx";
 import { Job } from "./jobs_view.jsx";
 
 
-export class Worker extends React.PureComponent {
-    constructor(props) {
-        super(props);
-        this.state = {
-            worker: {}
-        };
-        this.onChange = this.onChange.bind(this);
-    }
-
-    componentDidMount() {
-        DATA_STORE.listen(this.onChange);
-        this.setState({
-            worker: DATA_STORE.state.getWorker(this.props.worker_id)
-        });
-    }
-
-    componentWillUnmount() {
-        DATA_STORE.unlisten(this.onChange);
-    }
-
-    onChange(state) {
-        this.setState({
-            worker: state.getWorker(this.props.worker_id)
-        });
-    }
+export class Worker extends Item {
+    getValue = state => state.getWorker(this.props.id);
+    idFormat = x => "W-" + x;
 
     color_for_state() {
-        if (this.state.worker.state == "working") {
+        if (this.state.data.state == "working") {
             return "info";
         }
-        else if (this.state.worker.state == "considering") {
+        else if (this.state.data.state == "considering") {
             return "info";
         }
-        else if (this.state.worker.state == "idle") {
+        else if (this.state.data.state == "idle") {
             return "success";
         }
-        else if (this.state.worker.state == "disconnected") {
+        else if (this.state.data.state == "disconnected") {
             return "danger";
         }
         return "warning";
     }
 
-    render() {
-        console.log("RW", this.state);
-        return <div className={"worker"/* + (this.props.embedded ? "" : " row")*/}>
-            <div className="item-name">
-                {this.state.worker.id}
-                <span className="text-secondary ml-1 small">({this.state.worker.address})</span>
-            </div>
-            <div className="item-state"><span className={"text-" + this.color_for_state()}>{this.state.worker.state}</span></div>
-            {!nullOrUndefined(this.state.worker.current_job) && !this.props.embedded ?
-                <div className="indent">
-                    <Job job_id={this.state.worker.current_job} key={this.state.worker.current_job} embedded={true} />
-                </div> : null}
+    renderExpanded() {
+        return <div className="item" onClick={this.collapse}>
+            <div className="item-name">{this.idFormat(this.state.data.id)}</div>
+            <ItemTable>
+                <ItemTableRow name="State" value={
+                    <span className={"text-" + this.color_for_state()}>{this.state.data.state}</span>
+                }/>
+                <ItemTableRow name="Address" value={this.state.data.address}/>
+                <ItemTableRow name="Current Job" value={
+                    ifNotNU(this.state.data.current_job, id => <Job id={id} key={id} />)
+                }/>
+                <ItemTableRow name="Considering Job" value={
+                    ifNotNU(this.state.data.considering_job, id => <Job id={id} key={id} />)
+                }/>
+            </ItemTable>
         </div>;
     }
 }
@@ -96,7 +78,7 @@ export class WorkersView extends React.PureComponent {
     render() {
         console.log("WJV", this.state.worker_ids);
         return <>
-            {[...this.state.worker_ids].sort().map(id => <Worker key={id} worker_id={id} />)}
+            {[...this.state.worker_ids].sort().map(id => <Worker key={id} id={id} initial_expanded={true} collapseable={false} />)}
         </>;
     }
 }
