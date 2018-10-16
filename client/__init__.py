@@ -56,17 +56,3 @@ class Worker(WebSocketClient):
             "command": command,
             "args": args
         }))
-
-
-def run(address, port):
-    try:
-        while True:
-            ws = Worker(f'ws://{address}:{port}/api/ws/worker', protocols=['http-only', 'chat'])
-            try:
-                ws.connect()
-            except IOError:
-                time.sleep(5)
-            else:
-                ws.run_forever()
-    except KeyboardInterrupt:
-        ws.close()

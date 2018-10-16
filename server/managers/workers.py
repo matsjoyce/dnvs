@@ -27,6 +27,7 @@ class Worker:
         self.current_job = None
         self.considering_job = None
         self.lock = threading.RLock()
+        self.warnings = []
 
     @property
     def address(self):
