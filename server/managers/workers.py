@@ -39,7 +39,9 @@ class Worker:
             "address": self.address,
             "state": self.state.name,
             "current_job": self.current_job.id if self.current_job else None,
-            "considering_job": self.considering_job.id if self.considering_job else None
+            "considering_job": self.considering_job.id if self.considering_job else None,
+            "plugins": self.plugins,
+            "warnings": self.warnings
         }
 
     def locked(func):
@@ -57,7 +59,9 @@ class Worker:
         if command == "startup-complete":
             assert self.state is WorkerState.startup
             self.state = WorkerState.idle
+            self.plugins = data["args"]["plugins"]
 
+            cherrypy.engine.publish("worker-plugins-ready", self)
             cherrypy.engine.publish("worker-state-change", self)
 
         elif command == "accept-job":

@@ -74,7 +74,7 @@ export class JobsView extends React.PureComponent {
     render() {
         console.log("RJV", this.state.job_ids);
         return <>
-            {[...this.state.job_ids].sort().map(id => <Job key={id} id={id} initial_expanded={true} collapseable={false} />)}
+            {[...this.state.job_ids].sort((a, b) => a - b).map(id => <Job key={id} id={id} initial_expanded={true} collapseable={false} />)}
         </>;
     }
 }

@@ -1,0 +1,7 @@
+__pycache__/
+.kdev4/
+*.kdev4
+.directory
+package-lock.json
+node_modules/
+build/

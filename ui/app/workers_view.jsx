@@ -40,6 +40,14 @@ export class Worker extends Item {
                 <ItemTableRow name="Considering Job" value={
                     ifNotNU(this.state.data.considering_job, id => <Job id={id} key={id} />)
                 }/>
+                <ItemTableRow name="No. of plugins" value={
+                    ifNotNU(this.state.data.plugins, pls => pls.length)
+                }/>
+                <ItemTableRow name="Warnings" value={
+                    ifNotNU(this.state.data.warnings, ws => ws.length == 0 ? null : ws.map(v =>
+                        <div className="text-warning">{v}</div>
+                    )
+                )}/>
             </ItemTable>
         </div>;
     }
@@ -78,7 +86,7 @@ export class WorkersView extends React.PureComponent {
     render() {
         console.log("WJV", this.state.worker_ids);
         return <>
-            {[...this.state.worker_ids].sort().map(id => <Worker key={id} id={id} initial_expanded={true} collapseable={false} />)}
+            {[...this.state.worker_ids].sort((a, b) => a - b).map(id => <Worker key={id} id={id} initial_expanded={true} collapseable={false} />)}
         </>;
     }
 }
