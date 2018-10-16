@@ -28,6 +28,8 @@ class Worker:
         self.considering_job = None
         self.lock = threading.RLock()
         self.warnings = []
+        self.all_plugins = {}
+        self.plugins = set()
 
     @property
     def address(self):
@@ -40,7 +42,7 @@ class Worker:
             "state": self.state.name,
             "current_job": self.current_job.id if self.current_job else None,
             "considering_job": self.considering_job.id if self.considering_job else None,
-            "plugins": self.plugins,
+            "plugins": list(self.plugins),
             "warnings": self.warnings
         }
 
@@ -59,9 +61,9 @@ class Worker:
         if command == "startup-complete":
             assert self.state is WorkerState.startup
             self.state = WorkerState.idle
-            self.plugins = data["args"]["plugins"]
+            self.all_plugins = {p["id"]: p for p in data["args"]["plugins"]}
 
-            cherrypy.engine.publish("worker-plugins-ready", self)
+            cherrypy.engine.publish("worker-plugins-changed", self)
             cherrypy.engine.publish("worker-state-change", self)
 
         elif command == "accept-job":
@@ -117,7 +119,7 @@ class Worker:
         job.considered(self)
         self.considering_job = job
         self.state = WorkerState.considering
-        self.send_command("consider-job", job_id=job.id)
+        self.send_command("consider-job", job_id=job.id, plugin=job.plugin, args=job.args)
         cherrypy.engine.publish("worker-state-change", self)
 
     def send_command(self, command, **args):
@@ -136,6 +138,7 @@ class Worker:
             self.considering_job = None
         self.state = WorkerState.disconnected
         cherrypy.engine.publish("worker-state-change", self)
+        cherrypy.engine.publish("worker-plugins-changed", self)
 
 
 class WorkerManager(Manager):
@@ -146,7 +149,7 @@ class WorkerManager(Manager):
         self.workers = {}
         self.free_workers = set()
         self.lock = threading.RLock()
-        self.rfw_protection = False
+        self.fw_protection = False
 
     def locked(func):
         @functools.wraps(func)
@@ -160,7 +163,7 @@ class WorkerManager(Manager):
         self.bus.subscribe("worker-connected", self.worker_connected)
         self.bus.subscribe("worker-disconnected", self.worker_disconnected)
         self.bus.subscribe("worker-state-change", self.worker_state_change)
-        self.bus.subscribe("request-free-workers", self.request_free_workers)
+        self.bus.subscribe("view-free-workers", self.view_free_workers)
         self.bus.subscribe("view-workers", self.view_workers)
 
     def view_workers(self):
@@ -185,20 +188,24 @@ class WorkerManager(Manager):
     # The callbacks registered to free-workers must only take the workers to the considering/working state, not to the idle state.
     # This ensures that more free-workers events are not generated which could cause inefficiencies/deadlocks/assertion failures.
 
+    @locked
     def worker_state_change(self, worker):
         if worker.state == WorkerState.idle:
             self.free_workers.add(worker)
-            self.request_free_workers()
+
+            if self.fw_protection:
+                raise RuntimeError("FW protection failure!")
+
+            self.fw_protection = True
+            self.logger.debug(f"{len(self.free_workers)} free workers")
+            try:
+                if self.free_workers:
+                    cherrypy.engine.publish("free-workers")
+            finally:
+                self.fw_protection = False
         else:
             self.free_workers.discard(worker)
 
     @locked
-    def request_free_workers(self):
-        if self.rfw_protection:
-            raise RuntimeError("RFW protection failure!")
-
-        self.rfw_protection = True
-        self.logger.debug(f"{len(self.free_workers)} free workers")
-        if self.free_workers:
-            cherrypy.engine.publish("free-workers", self.free_workers.copy())
-        self.rfw_protection = False
+    def view_free_workers(self):
+        return self.free_workers.copy()

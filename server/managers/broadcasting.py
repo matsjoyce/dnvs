@@ -14,6 +14,7 @@ class BroadcastManager(Manager):
         self.bus.subscribe("broadcast-disconnected", self.broadcast_disconnected)
         self.bus.subscribe("job-state-change", self.job_state_change)
         self.bus.subscribe("worker-state-change", self.worker_state_change)
+        self.bus.subscribe("plugins-change", self.plugins_change)
 
     def broadcast_connected(self, ws):
         self.clients.add(ws)
@@ -26,6 +27,9 @@ class BroadcastManager(Manager):
 
     def worker_state_change(self, worker):
         self.broadcast("worker", worker.json())
+
+    def plugins_change(self, plugins):
+        self.broadcast("plugins", [p.json() for p in plugins.values()])
 
     def broadcast(self, type, data):
         for client in self.clients:

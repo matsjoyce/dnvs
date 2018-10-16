@@ -33,9 +33,10 @@ def run(args):
             try:
                 ws.connect()
             except IOError:
-                time.sleep(5)
+                pass
             else:
                 ws.run_forever()
+            time.sleep(5)
     except KeyboardInterrupt:
         ws.close()
 

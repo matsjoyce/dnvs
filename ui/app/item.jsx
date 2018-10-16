@@ -15,8 +15,8 @@ export class Item extends React.PureComponent {
         this.onChange = this.onChange.bind(this);
     }
 
-    expand = () => this.setState({expanded: true});
-    collapse = () => this.setState({expanded: !this.state.collapseable});
+    expand = e => e.stopPropagation() || this.setState({expanded: true});
+    collapse = e => e.stopPropagation() || this.setState({expanded: !this.state.collapseable});
     idFormat = x => "#" + x;
 
     componentDidMount() {

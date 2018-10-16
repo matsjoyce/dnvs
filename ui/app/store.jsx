@@ -15,11 +15,13 @@ class DataActions {
             this.websocket.onopen = () => {
                 DATA_ACTIONS.refetchJobs();
                 DATA_ACTIONS.refetchWorkers();
+                DATA_ACTIONS.refetchPlugins();
             };
             this.websocket.onmessage = this.updateFromWS;
             this.websocket.onclose = () => {
                 this.updateJobs([]);
                 this.updateWorkers([]);
+                this.updatePlugins([]);
                 window.setTimeout(DATA_ACTIONS.connectWS, 5000);
             }
         }
@@ -45,6 +47,15 @@ class DataActions {
             fetchAndCall("/api/worker/", data => this.updateWorkers(data.data.workers));
         }
     }
+    updatePlugins(data) {
+        return data;
+    }
+    refetchPlugins() {
+        return (dispatch) => {
+            dispatch();
+            fetchAndCall("/api/plugin/", data => this.updatePlugins(data.data.plugins));
+        }
+    }
 }
 
 export var DATA_ACTIONS = alt.createActions(DataActions);
@@ -59,9 +70,13 @@ class DataStore {
 
             handleUpdateWorkers: DATA_ACTIONS.UPDATE_WORKERS,
             handleRefetchWorkers: DATA_ACTIONS.REFETCH_WORKERS,
+
+            handleUpdatePlugins: DATA_ACTIONS.UPDATE_PLUGINS,
+            handleRefetchPlugins: DATA_ACTIONS.REFETCH_PLUGINS,
         });
         this.jobs = {};
         this.workers = {};
+        this.plugins = {};
     }
 
     handleUpdateFromWS(data) {
@@ -70,6 +85,9 @@ class DataStore {
         }
         else if (data.type == "job") {
             this.jobs[data.data.id] = data.data;
+        }
+        else if (data.type == "plugins") {
+            this.handleUpdatePlugins(data.data)
         }
         else {
             console.log(data)
@@ -83,6 +101,7 @@ class DataStore {
     handleRefetchJobs() {
         this.jobs = {};
     }
+
     handleUpdateWorkers(data) {
         this.workers = {};
         data.map(worker => this.workers[worker.id] = worker);
@@ -91,11 +110,23 @@ class DataStore {
         this.workers = {};
     }
 
+    handleUpdatePlugins(data) {
+        this.plugins = {};
+        console.log(data);
+        data.map(plugin => this.plugins[plugin.id] = plugin);
+    }
+    handleRefetchPlugins() {
+        this.plugins = {};
+    }
+
     getWorker(id) {
         return this.workers[id] || {};
     }
     getJob(id) {
         return this.jobs[id] || {};
+    }
+    getPlugin(id) {
+        return this.plugins[id] || {};
     }
 }
 

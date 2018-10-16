@@ -6,7 +6,7 @@ import random
 
 from ws4py.client.threadedclient import WebSocketClient
 
-from .plugins import load_plugins
+from .plugins import load_plugins, RejectJob, FailJob
 
 
 logger = logging.getLogger(__name__)
@@ -28,37 +28,43 @@ class Worker(WebSocketClient):
         if command == "startup":
             self.id = data["args"]["id"]
             self.plugins = load_plugins()
-            for plugin in self.plugins:
-                logger.debug(f"{plugin.NAME}: {plugin.VERSION}")
+            for plugin in self.plugins.values():
+                logger.debug(f"{plugin.ID}: {plugin.VERSION}")
 
             logger.info(f"Startup complete, assigned worker id {self.id}")
-            self.send_command("startup-complete", plugins=[pl.info() for pl in self.plugins])
+            self.send_command("startup-complete", plugins=[pl.info() for pl in self.plugins.values()])
 
         elif command == "consider-job":
             jobid = data["args"]["job_id"]
-            logger.info(f"Offered job {jobid}")
-            if self.consider_job(jobid):
-                logger.info("Job accepted")
-                self.send_command("accept-job", job_id=jobid)
-                if self.perform_job(jobid):
-                    logger.info("Job finished")
-                    self.send_command("finished-job", job_id=jobid)
-                else:
-                    logger.info("Job failed")
-                    self.send_command("fail-job", job_id=jobid)
-            else:
+            plugin = data["args"]["plugin"]
+            logger.info(f"Offered job {jobid} using plugin {plugin}")
+            cls = self.plugins[plugin]
+            logger.debug(cls)
+            try:
+                job = cls(data["args"]["args"])
+            except RejectJob:
                 logger.info("Job rejected")
                 self.send_command("reject-job", job_id=jobid)
+            except Exception:
+                logger.error("Job rejected by exception", exc_info=True)
+                self.send_command("reject-job", job_id=jobid)
+            else:
+                logger.info("Job accepted")
+                self.send_command("accept-job", job_id=jobid)
+                try:
+                    job.run()
+                except FailJob:
+                    logger.info("Job failed")
+                    self.send_command("fail-job", job_id=jobid)
+                except Exception:
+                    logger.error("Job reFailedjected by exception", exc_info=True)
+                    self.send_command("fail-job", job_id=jobid)
+                else:
+                    logger.info("Job finished")
+                    self.send_command("finished-job", job_id=jobid)
 
         else:
             logger.warning(f"Unknown or unexpected command {command}: {pprint.pformat(data)}")
-
-    def consider_job(self, job):
-        return random.randrange(0, 2)
-
-    def perform_job(self, job):
-        time.sleep(random.randrange(3, 20))
-        return True
 
     def send_command(self, command, **args):
         self.send(json.dumps({

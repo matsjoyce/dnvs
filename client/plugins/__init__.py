@@ -6,7 +6,7 @@ import logging
 import threading
 
 
-REGISTERED_PLUGINS = set()
+REGISTERED_PLUGINS = {}
 PLUGINS_PATH = pathlib.Path(__file__).parent
 
 
@@ -14,6 +14,10 @@ logger = logging.getLogger(__name__)
 
 
 class Plugin(abc.ABC):
+    def __init__(self, args):
+        super().__init__()
+        self.args = args
+
     @abc.abstractmethod
     def run(self):
         pass
@@ -28,20 +32,28 @@ class Plugin(abc.ABC):
 
     @classmethod
     def __init_subclass__(cls):
-        assert "NAME" in cls.__dict__
+        assert "ID" in cls.__dict__
         assert "VERSION" in cls.__dict__
 
         if cls.available():
-            REGISTERED_PLUGINS.add(cls)
+            REGISTERED_PLUGINS[cls.ID] = cls
         else:
             logger.warning(f"Plugin {cls} is not available")
 
     @classmethod
     def info(cls):
         return {
-            "name": cls.NAME,
+            "id": cls.ID,
             "version": cls.VERSION
         }
+
+
+class RejectJob(RuntimeError):
+    pass
+
+
+class FailJob(RuntimeError):
+    pass
 
 
 def load_module(path):

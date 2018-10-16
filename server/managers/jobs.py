@@ -16,9 +16,11 @@ class JobState(enum.Enum):
 
 
 class Job:
-    def __init__(self, id, logger):
+    def __init__(self, id, logger, plugin, args):
         self.id = id
         self.logger = logger
+        self.args = args
+        self.plugin = plugin
         self.rejected_by = set()
         self.considered_by = None
         self.performed_by = None
@@ -29,10 +31,19 @@ class Job:
         return {
             "id": self.id,
             "state": self.state.name,
+            "args": self.args,
+            "plugin": self.plugin,
             "rejected_by": [w.id for w in self.rejected_by],
             "considered_by": self.considered_by.id if self.considered_by else None,
             "performed_by": self.performed_by.id if self.performed_by else None,
         }
+
+    def worker_can_perform(self, worker):
+        if worker in self.rejected_by:
+            return False
+        if self.plugin not in worker.plugins:
+            return False
+        return True
 
     def locked(func):
         @functools.wraps(func)
@@ -91,26 +102,25 @@ class JobManager(Manager):
         self.job_id = itertools.count()
         self.jobs = {}
 
-        for i in range(10):
-            self.add_job()
-
     def start(self):
         self.bus.log("JM: startup")
         self.bus.subscribe("free-workers", self.free_workers)
         self.bus.subscribe("view-jobs", self.view_jobs)
+        self.bus.subscribe("job-create", self.create_job)
 
     def view_jobs(self):
         return self.jobs.copy()
 
-    def add_job(self, *args, **kwargs):
+    def create_job(self, plugin, args):
         id = next(self.job_id)
-        self.logger.info(f"New job, id={id}")
-        job = self.jobs[id] = Job(id, self.logger, *args, **kwargs)
-        self.bus.publish("request-free-workers")
+        self.logger.info(f"New job, id={id}, plugin={plugin}")
+        job = self.jobs[id] = Job(id, self.logger, plugin, args)
+        self.bus.publish("free-workers")
 
-    def free_workers(self, workers):
+    def free_workers(self):
+        workers, = self.bus.publish("view-free-workers")
         for job in sorted(filter(lambda j: j.state is JobState.pending, self.jobs.values()), key=lambda j: j.id):
-            for worker in filter(lambda w: w not in job.rejected_by, workers):
+            for worker in filter(lambda w: job.worker_can_perform(w), workers):
                 worker.consider(job)
                 workers.discard(worker)
                 break

@@ -1,9 +1,11 @@
 import React from "react";
 
 import { DATA_ACTIONS, DATA_STORE } from "./store.jsx";
-import { isSetsEqual, nullOrUndefined, withDefault, ifNotNU } from "./utils.jsx";
+import { nullOrUndefined, withDefault, ifNotNU, react_join } from "./utils.jsx";
 import { Item, ItemTable, ItemTableRow } from "./item.jsx";
+import { ItemView } from "./item_view.jsx";
 import { Job } from "./jobs_view.jsx";
+import { Plugin } from "./plugins_view.jsx";
 
 
 export class Worker extends Item {
@@ -12,13 +14,13 @@ export class Worker extends Item {
 
     color_for_state() {
         if (this.state.data.state == "working") {
-            return "info";
+            return "success";
         }
         else if (this.state.data.state == "considering") {
-            return "info";
+            return "primary";
         }
         else if (this.state.data.state == "idle") {
-            return "success";
+            return "info";
         }
         else if (this.state.data.state == "disconnected") {
             return "danger";
@@ -40,12 +42,12 @@ export class Worker extends Item {
                 <ItemTableRow name="Considering Job" value={
                     ifNotNU(this.state.data.considering_job, id => <Job id={id} key={id} />)
                 }/>
-                <ItemTableRow name="No. of plugins" value={
-                    ifNotNU(this.state.data.plugins, pls => pls.length)
+                <ItemTableRow name="Plugins" value={
+                    ifNotNU(this.state.data.plugins, ps => react_join(ps.map(id => <Plugin id={id} key={id} />), i => ", "))
                 }/>
                 <ItemTableRow name="Warnings" value={
-                    ifNotNU(this.state.data.warnings, ws => ws.length == 0 ? null : ws.map(v =>
-                        <div className="text-warning">{v}</div>
+                    ifNotNU(this.state.data.warnings, ws => ws.length == 0 ? null : ws.map((v, i) =>
+                        <div key={i} className="text-warning">{v}</div>
                     )
                 )}/>
             </ItemTable>
@@ -54,40 +56,7 @@ export class Worker extends Item {
 }
 
 
-export class WorkersView extends React.PureComponent {
-    constructor(props) {
-        super(props);
-        this.state = {
-            worker_ids: new Set()
-        };
-        this.onChange = this.onChange.bind(this);
-    }
-
-    componentDidMount() {
-        DATA_STORE.listen(this.onChange);
-        this.setState({
-            worker_ids: new Set(Object.keys(DATA_STORE.state.workers))
-        });
-    }
-
-    componentWillUnmount() {
-        DATA_STORE.unlisten(this.onChange);
-    }
-
-    onChange(state) {
-        var new_ids = new Set(Object.keys(state.workers));
-        if (!isSetsEqual(new_ids, this.state.worker_ids)) {
-            this.setState({
-                worker_ids: new_ids
-            });
-        }
-    }
-
-    render() {
-        console.log("WJV", this.state.worker_ids);
-        return <>
-            {[...this.state.worker_ids].sort((a, b) => a - b).map(id => <Worker key={id} id={id} initial_expanded={true} collapseable={false} />)}
-        </>;
-    }
+export class WorkersView extends ItemView {
+    getValues = state => state.workers;
+    itemCls = Worker;
 }
-

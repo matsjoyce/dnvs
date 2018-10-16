@@ -5,6 +5,7 @@ import $ from "jquery";
 import { WorkersView } from "./workers_view.jsx";
 import { JobsView } from "./jobs_view.jsx";
 import { SubnetsView } from "./subnets_view.jsx";
+import { PluginsView } from "./plugins_view.jsx";
 import { DATA_ACTIONS, DATA_STORE } from "./store.jsx";
 
 
@@ -19,6 +20,7 @@ export class App extends React.Component {
     change_to_network = () => this.setState({view: "network"});
     change_to_workers = () => this.setState({view: "workers"});
     change_to_jobs = () => this.setState({view: "jobs"});
+    change_to_plugins = () => this.setState({view: "plugins"});
 
     current_view() {
         if (this.state.view == "network") {
@@ -29,6 +31,9 @@ export class App extends React.Component {
         }
         else if (this.state.view == "jobs") {
             return <JobsView />
+        }
+        else if (this.state.view == "plugins") {
+            return <PluginsView />
         }
     }
 
@@ -51,6 +56,11 @@ export class App extends React.Component {
                             className={"btn" + (this.state.view == "jobs" ? " btn-primary" : " btn-secondary")}
                             onClick={this.change_to_jobs} >
                         Jobs
+                    </button>
+                    <button type="button"
+                            className={"btn" + (this.state.view == "plugins" ? " btn-primary" : " btn-secondary")}
+                            onClick={this.change_to_plugins} >
+                        Plugins
                     </button>
                 </div>
             </nav>
