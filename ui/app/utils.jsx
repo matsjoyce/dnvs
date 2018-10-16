@@ -6,7 +6,7 @@ export const nullOrUndefined = x => x === null || x === undefined;
 export const withDefault = (v, d) => nullOrUndefined(v) ? d : v;
 export const ifNotNU = (v, f) => nullOrUndefined(v) ? v : f(v);
 export function react_join(xs, sep) {
-    sep = sep || (i => <span key={i} className="item-sep">, </span>);
+    sep = sep || (i => <span key={"is-" + i} className="item-sep">, </span>);
     var joined = [];
     xs.map((e, i) => {
         joined.push(e);

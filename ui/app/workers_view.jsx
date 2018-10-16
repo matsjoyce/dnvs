@@ -28,6 +28,10 @@ export class Worker extends Item {
         return "warning";
     }
 
+    renderSemiCollapsedText() {
+        return this.state.data.address;
+    }
+
     renderExpanded() {
         return <div className="item" onClick={this.collapse}>
             <div className="item-name">{this.idFormat(this.state.data.id)}</div>

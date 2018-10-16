@@ -14,4 +14,3 @@ export class SubnetsView extends React.Component {
         </>;
     }
 }
-

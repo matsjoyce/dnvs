@@ -15,6 +15,10 @@ export class Plugin extends Item {
         return "light";
     }
 
+    renderSemiCollapsedText() {
+        return "v" + this.state.data.version;
+    }
+
     renderExpanded() {
         return <div className="item" onClick={this.collapse}>
             <div className="item-name">{this.idFormat(this.state.data.id)}</div>

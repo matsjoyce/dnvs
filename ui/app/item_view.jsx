@@ -37,7 +37,7 @@ export class ItemView extends React.PureComponent {
         var Cls = this.itemCls;
         console.log(this.state.ids)
         return <>
-            {[...this.state.ids].sort((a, b) => a - b).map(id => <Cls key={id} id={id} initial_expanded={true} collapseable={false} />)}
+            {[...this.state.ids].sort((a, b) => a - b).map(id => <Cls key={id} id={id} initial_semicollapsed={true} />)}
         </>;
     }
 }

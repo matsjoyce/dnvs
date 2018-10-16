@@ -31,6 +31,10 @@ export class Job extends Item {
         return "warning";
     }
 
+    renderSemiCollapsedText() {
+        return this.state.data.plugin;
+    }
+
     renderExpanded() {
         return <div className="item" onClick={this.collapse}>
             <div className="item-name">{this.idFormat(this.state.data.id)}</div>

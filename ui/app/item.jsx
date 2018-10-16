@@ -10,13 +10,20 @@ export class Item extends React.PureComponent {
         this.state = {
             data: {},
             expanded: withDefault(this.props.initial_expanded, false),
-            collapseable: withDefault(this.props.collapseable, true)
+            collapseable: withDefault(this.props.collapseable, true),
+            semicollapsed: withDefault(this.props.initial_semicollapsed, false)
         };
         this.onChange = this.onChange.bind(this);
     }
 
-    expand = e => e.stopPropagation() || this.setState({expanded: true});
-    collapse = e => e.stopPropagation() || this.setState({expanded: !this.state.collapseable});
+    expand = e => {
+        e.stopPropagation();
+        this.setState({expanded: true});
+    }
+    collapse = e => {
+        e.stopPropagation();
+        this.setState({expanded: !this.state.collapseable});
+    }
     idFormat = x => "#" + x;
 
     componentDidMount() {
@@ -44,12 +51,24 @@ export class Item extends React.PureComponent {
         return null;
     }
 
+    renderSemiCollapsedText() {
+        return "";
+    }
+
+    renderSemiCollapsed() {
+        return <div className="item-semicollapsed" onClick={this.expand}>
+            <span className={"link text-" + this.color_for_state()}>{this.idFormat(this.state.data.id)}</span>
+            <span className="text-secondary ml-2">{this.renderSemiCollapsedText()}</span>
+        </div>;
+    }
+
     renderCollapsed() {
-        return <span className={"item-collapsed text-" + this.color_for_state()} onClick={this.expand}>{this.idFormat(this.state.data.id)}</span>
+        return <span className={"item-collapsed text-" + this.color_for_state()} onClick={this.expand}>{this.idFormat(this.state.data.id)}</span>;
     }
 
     render() {
-        return this.state.expanded ? this.renderExpanded() : this.renderCollapsed();
+        console.log(this.state);
+        return this.state.expanded ? this.renderExpanded() : (this.state.semicollapsed ? this.renderSemiCollapsed() : this.renderCollapsed());
     }
 }
 
