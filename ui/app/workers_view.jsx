@@ -43,7 +43,7 @@ export class Worker extends Item {
                     ifNotNU(this.state.data.considering_job, id => <Job id={id} key={id} />)
                 }/>
                 <ItemTableRow name="Plugins" value={
-                    ifNotNU(this.state.data.plugins, ps => react_join(ps.map(id => <Plugin id={id} key={id} />), i => ", "))
+                    ifNotNU(this.state.data.plugins, ps => react_join(ps.map(id => <Plugin id={id} key={id} />)))
                 }/>
                 <ItemTableRow name="Warnings" value={
                     ifNotNU(this.state.data.warnings, ws => ws.length == 0 ? null : ws.map((v, i) =>

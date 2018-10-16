@@ -45,7 +45,7 @@ export class Job extends Item {
                     ifNotNU(this.state.data.performed_by, id => <Worker id={id} key={id} />)
                 }/>
                 <ItemTableRow name="Rejected by" value={
-                    ifNotNU(this.state.data.rejected_by, rb => rb.length == 0 ? null : react_join(rb.map(id => <Worker id={id} key={id} />), i => ", "))
+                    ifNotNU(this.state.data.rejected_by, rb => rb.length == 0 ? null : react_join(rb.map(id => <Worker id={id} key={id} />)))
                 }/>
             </ItemTable>
         </div>;

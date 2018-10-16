@@ -10,8 +10,24 @@ $body-color: white;
 
 .item {
     margin: 1rem 0;
-    border-left: 2px solid $gray-700;
-    padding-left: 0.5rem;
+    border: 1px solid $gray-700;
+    padding: 0.5rem;
+
+    table {
+        width: 100%;
+
+        td:first-child {
+            white-space: nowrap;
+        }
+
+        td:last-child {
+            width: 100%;
+        }
+    }
+}
+
+.item+.item-sep {
+    display: none;
 }
 
 .item-collapsed {

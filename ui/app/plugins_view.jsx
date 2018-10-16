@@ -21,7 +21,7 @@ export class Plugin extends Item {
             <ItemTable>
                 <ItemTableRow name="Version" value={this.state.data.version}/>
                 <ItemTableRow name="Supporting workers" value={
-                    ifNotNU(this.state.data.workers, ws => react_join(ws.sort((a, b) => a - b).map(id => <Worker id={id} key={id} />), i => ", "))
+                    ifNotNU(this.state.data.workers, ws => react_join(ws.sort((a, b) => a - b).map(id => <Worker id={id} key={id} />)))
                 }/>
             </ItemTable>
         </div>;
