@@ -17,7 +17,10 @@ export class Network extends Item {
     }
 
     renderSemiCollapsedText() {
-        return this.state.data.network;
+        return <>
+            {this.state.data.network}
+            {ifNotNU(this.state.data.active_jobs, js => js.length == 0 ? null : <span className="text-light"> [{js.length} active job(s)]</span>)}
+        </>;
     }
 
     renderExpanded() {

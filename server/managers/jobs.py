@@ -3,6 +3,7 @@ import itertools
 import threading
 import functools
 import cherrypy
+import time
 
 from . import Manager
 
@@ -27,6 +28,9 @@ class Job:
         self.performed_by = None
         self.state = JobState.pending
         self.lock = threading.RLock()
+        self.creation_time = time.time()
+        self.finish_time = None
+        cherrypy.engine.publish("job-state-change", self)
 
     def json(self):
         return {
@@ -37,6 +41,8 @@ class Job:
             "rejected_by": [w.id for w in self.rejected_by],
             "considered_by": self.considered_by.id if self.considered_by else None,
             "performed_by": self.performed_by.id if self.performed_by else None,
+            "creation_time": self.creation_time,
+            "finish_time": self.finish_time
         }
 
     def worker_can_perform(self, worker):
@@ -80,13 +86,16 @@ class Job:
     def finished(self, worker, args):
         assert self.state == JobState.running
         self.state = JobState.finished
+        self.finish_time = time.time()
         cherrypy.engine.publish("job-state-change", self)
+        cherrypy.engine.publish("job-completed", self)
 
     @locked
     def failed(self, worker, args):
         assert self.state == JobState.running
         self.state = JobState.failed
         cherrypy.engine.publish("job-state-change", self)
+        cherrypy.engine.publish("job-completed", self)
 
     @locked
     def aborted(self, worker, args):
@@ -103,6 +112,7 @@ class Job:
             self.considered_by.job_stopped(self)
         self.state = JobState.stopped
         cherrypy.engine.publish("job-state-change", self)
+        cherrypy.engine.publish("job-completed", self)
 
 
 class JobManager(Manager):
@@ -125,7 +135,7 @@ class JobManager(Manager):
         id = next(self.job_id)
         self.logger.info(f"New job, id={id}, plugin={plugin}")
         job = self.jobs[id] = Job(id, self.logger, plugin, args)
-        self.bus.publish("free-workers")
+        self.free_workers()
         return job
 
     def free_workers(self):

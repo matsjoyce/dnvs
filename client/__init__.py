@@ -67,10 +67,6 @@ class Worker(WebSocketClient):
                 logger.info("Job rejected")
                 self.send_command("reject-job", job_id=jobid)
                 return
-            except StopJob:
-                logger.info("Job stopped")
-                self.send_command("reject-job", job_id=jobid)
-                return
             except Exception:
                 logger.error("Job rejected by exception", exc_info=True)
                 self.send_command("reject-job", job_id=jobid)
@@ -83,16 +79,16 @@ class Worker(WebSocketClient):
             except FailJob:
                 logger.info("Job failed")
                 self.send_command("fail-job", job_id=jobid)
-            except StopJob:
-                logger.info("Job stopped")
-                self.send_command("fail-job", job_id=jobid)
-                return
             except Exception:
                 logger.error("Job failed by exception", exc_info=True)
                 self.send_command("fail-job", job_id=jobid)
             else:
                 logger.info("Job finished")
                 self.send_command("finished-job", job_id=jobid)
+        except StopJob:
+            logger.info("Job stopped")
+            self.send_command("stopped-job", job_id=jobid)
+            return
         finally:
             self.job = None
 

@@ -55,6 +55,12 @@ export class Job extends Item {
                 <ItemTableRow name="Rejected by" value={
                     ifNotNU(this.state.data.rejected_by, rb => rb.length == 0 ? null : react_join(rb.map(id => <Worker id={id} key={id} />)))
                 }/>
+                <ItemTableRow name="Creation time" value={
+                    ifNotNU(this.state.data.creation_time, t => new Date(t * 1000).toString())
+                }/>
+                <ItemTableRow name="Finish time" value={
+                    ifNotNU(this.state.data.finish_time, t => new Date(t * 1000).toString())
+                }/>
             </ItemTable>
         </div>;
     }

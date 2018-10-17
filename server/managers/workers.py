@@ -121,6 +121,14 @@ class Worker:
             self.state = WorkerState.idle
             cherrypy.engine.publish("worker-state-change", self)
 
+        elif command == "stopped-job":
+            assert data["args"]["job_id"] == self.considering_job.id or data["args"]["job_id"] == self.current_job.id
+            assert self.state is WorkerState.considering or self.state is WorkerState.working
+
+            self.considering_job = self.current_job = None
+            self.state = WorkerState.idle
+            cherrypy.engine.publish("worker-state-change", self)
+
         else:
             self.logger.warning(f"Unknown or unexpected command {command}: {pprint.pformat(data)}")
 

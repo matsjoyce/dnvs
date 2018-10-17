@@ -66,7 +66,7 @@ class Scheduler(Manager):
         self.bus.subscribe("view-plugins", self.view_plugins)
         self.bus.subscribe("network-change", self.network_evaluate)
         self.bus.subscribe("plugin-change", self.plugin_evaluate)
-        self.bus.subscribe("job-state-change", self.job_state_change)
+        self.bus.subscribe("job-completed", self.job_completed)
 
     @locked
     def calculate_plugins(self, updated_worker):
@@ -163,9 +163,7 @@ class Scheduler(Manager):
             network.active_jobs.pop(plugin.id).stop()
 
     @locked
-    def job_state_change(self, job):
-        if job.state is not JobState.finished:
-            return
+    def job_completed(self, job):
         networks, = self.bus.publish("view-networks")
         item = networks[job.args["network"]["id"]]
         plugin = self.plugins[job.plugin]
