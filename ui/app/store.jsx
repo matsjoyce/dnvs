@@ -16,12 +16,14 @@ class DataActions {
                 DATA_ACTIONS.refetchJobs();
                 DATA_ACTIONS.refetchWorkers();
                 DATA_ACTIONS.refetchPlugins();
+                DATA_ACTIONS.refetchNetworks();
             };
             this.websocket.onmessage = this.updateFromWS;
             this.websocket.onclose = () => {
                 this.updateJobs([]);
                 this.updateWorkers([]);
                 this.updatePlugins([]);
+                this.updateNetworks([]);
                 window.setTimeout(DATA_ACTIONS.connectWS, 5000);
             }
         }
@@ -45,6 +47,15 @@ class DataActions {
         return (dispatch) => {
             dispatch();
             fetchAndCall("/api/worker/", data => this.updateWorkers(data.data.workers));
+        }
+    }
+    updateNetworks(data) {
+        return data;
+    }
+    refetchNetworks() {
+        return (dispatch) => {
+            dispatch();
+            fetchAndCall("/api/network/", data => this.updateNetworks(data.data.networks));
         }
     }
     updatePlugins(data) {
@@ -71,12 +82,16 @@ class DataStore {
             handleUpdateWorkers: DATA_ACTIONS.UPDATE_WORKERS,
             handleRefetchWorkers: DATA_ACTIONS.REFETCH_WORKERS,
 
+            handleUpdateNetworks: DATA_ACTIONS.UPDATE_NETWORKS,
+            handleRefetchNetworks: DATA_ACTIONS.REFETCH_NETWORKS,
+
             handleUpdatePlugins: DATA_ACTIONS.UPDATE_PLUGINS,
             handleRefetchPlugins: DATA_ACTIONS.REFETCH_PLUGINS,
         });
         this.jobs = {};
         this.workers = {};
         this.plugins = {};
+        this.networks = {};
     }
 
     handleUpdateFromWS(data) {
@@ -86,8 +101,11 @@ class DataStore {
         else if (data.type == "job") {
             this.jobs[data.data.id] = data.data;
         }
-        else if (data.type == "plugins") {
-            this.handleUpdatePlugins(data.data)
+        else if (data.type == "network") {
+            this.networks[data.data.id] = data.data;
+        }
+        else if (data.type == "plugin") {
+            this.plugins[data.data.id] = data.data;
         }
         else {
             console.log(data)
@@ -110,6 +128,14 @@ class DataStore {
         this.workers = {};
     }
 
+    handleUpdateNetworks(data) {
+        this.networks = {};
+        data.map(network => this.networks[network.id] = network);
+    }
+    handleRefetchNetworks() {
+        this.networks = {};
+    }
+
     handleUpdatePlugins(data) {
         this.plugins = {};
         console.log(data);
@@ -124,6 +150,9 @@ class DataStore {
     }
     getJob(id) {
         return this.jobs[id] || {};
+    }
+    getNetwork(id) {
+        return this.networks[id] || {};
     }
     getPlugin(id) {
         return this.plugins[id] || {};

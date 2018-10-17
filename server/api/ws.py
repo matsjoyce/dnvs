@@ -2,6 +2,10 @@ import cherrypy
 import json
 from ws4py.server.cherrypyserver import WebSocketPlugin, WebSocketTool
 from ws4py.websocket import WebSocket
+import logging
+
+
+logger = logging.getLogger(__name__)
 
 
 class WebsocketHandler(WebSocket):
@@ -9,10 +13,16 @@ class WebsocketHandler(WebSocket):
         super().__init__(*args, **kwargs)
         self.name = name
         self.address = None
+        self.handler = None
 
     def received_message(self, message):
-        # Overriden by relevant managers
-        pass
+        if self.handler:
+            try:
+                self.handler.received_message(message)
+            except Exception:
+                logger.error("Exception in WS", exc_info=True)
+        else:
+            logger.warning("No handler in WS")
 
     def opened(self):
         cherrypy.engine.publish(self.name + "-connected", self)

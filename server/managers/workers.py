@@ -7,6 +7,7 @@ import threading
 import cherrypy
 
 from . import Manager
+from .jobs import JobState
 
 
 class WorkerState(enum.Enum):
@@ -22,7 +23,7 @@ class Worker:
         self.id = id
         self.ws = ws
         self.logger = logger
-        self.ws.received_message = self.received_message
+        self.ws.handler = self
         self.state = WorkerState.startup
         self.current_job = None
         self.considering_job = None
@@ -70,7 +71,10 @@ class Worker:
             assert data["args"]["job_id"] == self.considering_job.id
             assert self.current_job is None
             assert self.state is WorkerState.considering
-            self.considering_job.accepted(self, data["args"])
+
+            if self.considering_job.state is not JobState.stopped:
+                self.considering_job.accepted(self, data["args"])
+
             self.current_job, self.considering_job = self.considering_job, None
             self.state = WorkerState.working
 
@@ -80,7 +84,9 @@ class Worker:
             assert data["args"]["job_id"] == self.considering_job.id
             assert self.current_job is None
             assert self.state is WorkerState.considering
-            self.considering_job.rejected(self, data["args"])
+
+            if self.considering_job.state is not JobState.stopped:
+                self.considering_job.rejected(self, data["args"])
             self.considering_job = None
             self.state = WorkerState.idle
             cherrypy.engine.publish("worker-state-change", self)
@@ -88,7 +94,9 @@ class Worker:
         elif command == "finished-job":
             assert data["args"]["job_id"] == self.current_job.id
             assert self.state is WorkerState.working
-            self.current_job.finished(self, data["args"])
+
+            if self.current_job.state is not JobState.stopped:
+                self.current_job.finished(self, data["args"])
             self.current_job = None
             self.state = WorkerState.idle
             cherrypy.engine.publish("worker-state-change", self)
@@ -96,7 +104,9 @@ class Worker:
         elif command == "abort-job":
             assert data["args"]["job_id"] == self.current_job.id
             assert self.state is WorkerState.working
-            self.current_job.aborted(self, data["args"])
+
+            if self.current_job.state is not JobState.stopped:
+                self.current_job.aborted(self, data["args"])
             self.current_job = None
             self.state = WorkerState.idle
             cherrypy.engine.publish("worker-state-change", self)
@@ -104,7 +114,9 @@ class Worker:
         elif command == "fail-job":
             assert data["args"]["job_id"] == self.current_job.id
             assert self.state is WorkerState.working
-            self.current_job.failed(self, data["args"])
+
+            if self.current_job.state is not JobState.stopped:
+                self.current_job.failed(self, data["args"])
             self.current_job = None
             self.state = WorkerState.idle
             cherrypy.engine.publish("worker-state-change", self)
@@ -121,6 +133,11 @@ class Worker:
         self.state = WorkerState.considering
         self.send_command("consider-job", job_id=job.id, plugin=job.plugin, args=job.args)
         cherrypy.engine.publish("worker-state-change", self)
+
+    @locked
+    def job_stopped(self, job):
+        assert self.considering_job is job or self.current_job is job
+        self.send_command("stop-job", job_id=job.id)
 
     def send_command(self, command, **args):
         self.ws.send(json.dumps({
@@ -184,9 +201,10 @@ class WorkerManager(Manager):
         self.workers[id].disconnect()
 
     # Safety first!
-    # To ensure multiple free-workers events are not being handled at once we only fire the event when a worker becomes idle.
-    # The callbacks registered to free-workers must only take the workers to the considering/working state, not to the idle state.
-    # This ensures that more free-workers events are not generated which could cause inefficiencies/deadlocks/assertion failures.
+    # To ensure multiple free-workers events are not being handled at once we only fire the event when a worker
+    # becomes idle. The callbacks registered to free-workers must only take the workers to the considering/working
+    # state, not to the idle state. This ensures that more free-workers events are not generated which could cause
+    # inefficiencies/deadlocks/assertion failures.
 
     @locked
     def worker_state_change(self, worker):

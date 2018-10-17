@@ -13,6 +13,7 @@ class JobState(enum.Enum):
     running = 2
     finished = 3
     failed = 4
+    stopped = 5
 
 
 class Job:
@@ -94,6 +95,15 @@ class Job:
         self.state = JobState.pending
         cherrypy.engine.publish("job-state-change", self)
 
+    @locked
+    def stop(self):
+        if self.state is JobState.running:
+            self.performed_by.job_stopped(self)
+        elif self.state is JobState.consideration:
+            self.considered_by.job_stopped(self)
+        self.state = JobState.stopped
+        cherrypy.engine.publish("job-state-change", self)
+
 
 class JobManager(Manager):
     def __init__(self, bus):
@@ -116,6 +126,7 @@ class JobManager(Manager):
         self.logger.info(f"New job, id={id}, plugin={plugin}")
         job = self.jobs[id] = Job(id, self.logger, plugin, args)
         self.bus.publish("free-workers")
+        return job
 
     def free_workers(self):
         workers, = self.bus.publish("view-free-workers")

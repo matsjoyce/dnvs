@@ -29,7 +29,11 @@ export class Worker extends Item {
     }
 
     renderSemiCollapsedText() {
-        return this.state.data.address;
+        return <>
+            {this.state.data.address}
+            {ifNotNU(this.state.data.plugins, ws => ws.length == 0 ? null : <span className="text-light"> [{ws.length} plugin(s)]</span>)}
+            {ifNotNU(this.state.data.warnings, ws => ws.length == 0 ? null : <span className="text-warning"> [{ws.length} warning(s)]</span>)}
+        </>;
     }
 
     renderExpanded() {

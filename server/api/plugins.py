@@ -21,4 +21,3 @@ class PluginsAPI:
         return {
             "plugins": [plugin.json() for plugin in plugins.values()]
         }
-

@@ -1,12 +1,13 @@
 """
 Usage:
-    dvns-client [--address=<address>] [--port=<port>] [--processes=<processes>] [--threads=<threads>]
+    dvns-client [--address=<address>] [--port=<port>] [--processes=<processes>] [--threads=<threads>] [--define=<def>]...
 
 Options:
     -a, --address=<address>         [default: 0.0.0.0]
     -p, --port=<port>               [default: 9000]
     --processes=<processes>         [default: 1]
     --threads=<threads>             [default: 1]
+    -D, --define=<def>
 """
 
 
@@ -29,7 +30,7 @@ except ImportError:
 def run(args):
     try:
         while True:
-            ws = Worker(f"ws://{args['--address']}:{args['--port']}/api/ws/worker", protocols=["http-only", "chat"])
+            ws = Worker(f"ws://{args['--address']}:{args['--port']}/api/ws/worker", protocols=["http-only", "chat"], definitions=args["--define"])
             try:
                 ws.connect()
             except IOError:

@@ -4,7 +4,7 @@ import $ from "jquery";
 
 import { WorkersView } from "./workers_view.jsx";
 import { JobsView } from "./jobs_view.jsx";
-import { SubnetsView } from "./subnets_view.jsx";
+import { NetworksView } from "./networks_view.jsx";
 import { PluginsView } from "./plugins_view.jsx";
 import { DATA_ACTIONS, DATA_STORE } from "./store.jsx";
 
@@ -24,7 +24,7 @@ export class App extends React.Component {
 
     current_view() {
         if (this.state.view == "network") {
-            return <SubnetsView />
+            return <NetworksView />
         }
         else if (this.state.view == "workers") {
             return <WorkersView />

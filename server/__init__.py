@@ -34,4 +34,9 @@ def run(address, port):
         "log.error_file": ""
     })
     Manager.register_managers(cherrypy.engine)
-    cherrypy.quickstart(Root(), "/", config=CONFIG)
+    cherrypy.tree.mount(Root(), "/", CONFIG)
+
+    cherrypy.engine.signals.subscribe()
+    cherrypy.engine.start()
+    cherrypy.engine.publish("network-create", "127.0.0.0/29")
+    cherrypy.engine.block()

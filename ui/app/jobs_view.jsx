@@ -6,6 +6,7 @@ import { Item, ItemTable, ItemTableRow } from "./item.jsx";
 import { ItemView } from "./item_view.jsx";
 import { Worker } from "./workers_view.jsx";
 import { Plugin } from "./plugins_view.jsx";
+import { Network } from "./networks_view.jsx";
 
 
 export class Job extends Item {
@@ -22,7 +23,7 @@ export class Job extends Item {
         else if (this.state.data.state == "pending") {
             return "light";
         }
-        else if (this.state.data.state == "failed") {
+        else if (this.state.data.state == "failed" || this.state.data.state == "stopped") {
             return "danger";
         }
         else if (this.state.data.state == "consideration") {
@@ -44,6 +45,9 @@ export class Job extends Item {
                 }/>
                 <ItemTableRow name="Plugin" value={
                     ifNotNU(this.state.data.plugin, id => <Plugin id={id} key={id} />)
+                }/>
+                <ItemTableRow name="Network" value={
+                    ifNotNU(this.state.data.args, args => ifNotNU(args.network, net => <Network id={net.id} key={net.id} />))
                 }/>
                 <ItemTableRow name="Performed by" value={
                     ifNotNU(this.state.data.performed_by, id => <Worker id={id} key={id} />)
