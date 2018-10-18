@@ -26,5 +26,5 @@ class NetworksAPI:
     @cherrypy.tools.json_in()
     def POST(self):
         net = cherrypy.request.json["network"]
-        network, = cherrypy.engine.publish("network-create", net)
+        (network,), = cherrypy.engine.publish("process-sync", cherrypy.engine.publish, "network-create", net)
         return network.json()

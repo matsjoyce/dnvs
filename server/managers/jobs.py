@@ -1,7 +1,5 @@
 import enum
 import itertools
-import threading
-import functools
 import cherrypy
 import time
 
@@ -27,7 +25,6 @@ class Job:
         self.considered_by = None
         self.performed_by = None
         self.state = JobState.pending
-        self.lock = threading.RLock()
         self.creation_time = time.time()
         self.finish_time = None
         cherrypy.engine.publish("job-state-change", self)
@@ -52,21 +49,12 @@ class Job:
             return False
         return True
 
-    def locked(func):
-        @functools.wraps(func)
-        def lock_wrapper(self, *args, **kwargs):
-            with self.lock:
-                return func(self, *args, **kwargs)
-        return lock_wrapper
-
-    @locked
     def considered(self, worker):
         assert self.state == JobState.pending
         self.considered_by = worker
         self.state = JobState.consideration
         cherrypy.engine.publish("job-state-change", self)
 
-    @locked
     def accepted(self, worker, args):
         assert self.state == JobState.consideration
         self.considered_by = None
@@ -74,7 +62,6 @@ class Job:
         self.state = JobState.running
         cherrypy.engine.publish("job-state-change", self)
 
-    @locked
     def rejected(self, worker, args):
         assert self.state == JobState.consideration
         self.considered_by = None
@@ -82,7 +69,6 @@ class Job:
         self.state = JobState.pending
         cherrypy.engine.publish("job-state-change", self)
 
-    @locked
     def finished(self, worker, args):
         assert self.state == JobState.running
         self.state = JobState.finished
@@ -90,21 +76,18 @@ class Job:
         cherrypy.engine.publish("job-state-change", self)
         cherrypy.engine.publish("job-completed", self)
 
-    @locked
     def failed(self, worker, args):
         assert self.state == JobState.running
         self.state = JobState.failed
         cherrypy.engine.publish("job-state-change", self)
         cherrypy.engine.publish("job-completed", self)
 
-    @locked
     def aborted(self, worker, args):
         assert self.state == JobState.running
         self.performed_by = None
         self.state = JobState.pending
         cherrypy.engine.publish("job-state-change", self)
 
-    @locked
     def stop(self):
         if self.state is JobState.running:
             self.performed_by.job_stopped(self)

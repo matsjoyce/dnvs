@@ -3,10 +3,12 @@ import json
 from ws4py.server.cherrypyserver import WebSocketPlugin, WebSocketTool
 from ws4py.websocket import WebSocket
 import logging
-import threading
+from concurrent.futures import ThreadPoolExecutor
+import pprint
 
 
 logger = logging.getLogger(__name__)
+executor = ThreadPoolExecutor(max_workers=1)
 
 
 class WebsocketHandler(WebSocket):
@@ -15,28 +17,24 @@ class WebsocketHandler(WebSocket):
         self.name = name
         self.address = None
         self.handler = None
-        self.lock = threading.RLock()
 
     def received_message(self, message):
-        logger.debug(f"[{self.name}] From {self.address}: {message.data}")
+        data = json.loads(message.data)
+        logger.debug(f"[{self.name}] From {self.address}:\n{pprint.pformat(data)}")
         if self.handler:
-            try:
-                self.handler.received_message(message)
-            except Exception:
-                logger.error("Exception in WS", exc_info=True)
+            cherrypy.engine.publish("process", self.handler.received_message, data)
         else:
             logger.warning("No handler in WS")
 
     def opened(self):
-        cherrypy.engine.publish(self.name + "-connected", self)
+        cherrypy.engine.publish("process", cherrypy.engine.publish, self.name + "-connected", self)
 
     def closed(self, code, reason=None):
-        cherrypy.engine.publish(self.name + "-disconnected", self)
+        cherrypy.engine.publish("process", cherrypy.engine.publish, self.name + "-disconnected", self)
 
     def send_json(self, data):
-        with self.lock:
-            logger.debug(f"[{self.name}] To {self.address}: {data}")
-            self.send(json.dumps(data))
+        logger.debug(f"[{self.name}] To {self.address}:\n{pprint.pformat(data)}")
+        executor.submit(self.send, json.dumps(data))
 
     @classmethod
     def with_name(cls, name):

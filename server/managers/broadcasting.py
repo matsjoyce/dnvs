@@ -1,4 +1,3 @@
-
 from . import Manager
 
 
@@ -20,32 +19,31 @@ class BroadcastManager(Manager):
         self.bus.subscribe("plugin-worker-change", self.plugins_change)
 
     def broadcast_connected(self, ws):
-        with ws.lock:
-            self.clients.add(ws)
-            jobs, = self.bus.publish("view-jobs")
-            workers, = self.bus.publish("view-workers")
-            plugins, = self.bus.publish("view-plugins")
-            networks, = self.bus.publish("view-networks")
-            for job in jobs.values():
-                ws.send_json({
-                    "type": "job",
-                    "data": job.json()
-                })
-            for worker in workers.values():
-                ws.send_json({
-                    "type": "worker",
-                    "data": worker.json()
-                })
-            for plugin in plugins.values():
-                ws.send_json({
-                    "type": "plugin",
-                    "data": plugin.json()
-                })
-            for network in networks.values():
-                ws.send_json({
-                    "type": "network",
-                    "data": network.json()
-                })
+        self.clients.add(ws)
+        jobs, = self.bus.publish("view-jobs")
+        workers, = self.bus.publish("view-workers")
+        plugins, = self.bus.publish("view-plugins")
+        networks, = self.bus.publish("view-networks")
+        for job in jobs.values():
+            ws.send_json({
+                "type": "job",
+                "data": job.json()
+            })
+        for worker in workers.values():
+            ws.send_json({
+                "type": "worker",
+                "data": worker.json()
+            })
+        for plugin in plugins.values():
+            ws.send_json({
+                "type": "plugin",
+                "data": plugin.json()
+            })
+        for network in networks.values():
+            ws.send_json({
+                "type": "network",
+                "data": network.json()
+            })
 
     def broadcast_disconnected(self, ws):
         self.clients.discard(ws)

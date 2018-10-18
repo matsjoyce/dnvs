@@ -30,7 +30,9 @@ except ImportError:
 def run(args):
     try:
         while True:
-            ws = Worker(f"ws://{args['--address']}:{args['--port']}/api/ws/worker", protocols=["http-only", "chat"], definitions=args["--define"])
+            ws = Worker(f"ws://{args['--address']}:{args['--port']}/api/ws/worker",
+                        protocols=["http-only", "chat"],
+                        definitions=args["--define"])
             try:
                 ws.connect()
             except IOError:

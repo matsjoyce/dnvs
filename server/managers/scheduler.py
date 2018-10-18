@@ -1,6 +1,4 @@
 import collections
-import functools
-import threading
 import cherrypy
 
 from . import Manager
@@ -54,15 +52,7 @@ class Scheduler(Manager):
         super().__init__(*args, **kwargs)
         self.plugins = {}
         self.plugins_by_target = {"network": [], "node": []}
-        self.lock = threading.RLock()
         self.scheduled_jobs = {}
-
-    def locked(func):
-        @functools.wraps(func)
-        def lock_wrapper(self, *args, **kwargs):
-            with self.lock:
-                return func(self, *args, **kwargs)
-        return lock_wrapper
 
     def start(self):
         self.bus.log("Scheduler: startup")
@@ -72,7 +62,6 @@ class Scheduler(Manager):
         self.bus.subscribe("plugin-change", self.plugin_evaluate)
         self.bus.subscribe("job-completed", self.job_completed)
 
-    @locked
     def calculate_plugins(self, updated_worker):
         workers, = self.bus.publish("view-workers")
 
@@ -107,7 +96,6 @@ class Scheduler(Manager):
         for plugin in self.plugins.values():
             self.plugins_by_target[plugin.target].add(plugin)
 
-    @locked
     def network_evaluate(self, network):
         self.logger.info("Network updated, considering...")
         runnable_plugins = set()
@@ -125,7 +113,6 @@ class Scheduler(Manager):
         network.active_plugins = runnable_plugins
         cherrypy.engine.publish("network-active-plugins-change", network)
 
-    @locked
     def plugin_evaluate(self, plugin):
         if plugin.target == "network":
             networks, = self.bus.publish("view-networks")
@@ -161,7 +148,6 @@ class Scheduler(Manager):
         if plugin.id in network.active_jobs:
             network.active_jobs.pop(plugin.id).stop()
 
-    @locked
     def job_completed(self, job):
         networks, = self.bus.publish("view-networks")
         item = networks[job.args["network"]["id"]]

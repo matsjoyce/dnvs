@@ -31,4 +31,4 @@ class Manager:
             manager(bus).subscribe()
 
 
-from . import workers, jobs, broadcasting, scheduler, networks  # noqa
+from . import workers, jobs, broadcasting, scheduler, networks, processing_thread  # noqa

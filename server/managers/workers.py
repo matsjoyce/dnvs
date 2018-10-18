@@ -1,9 +1,6 @@
 import itertools
-import json
 import enum
 import pprint
-import functools
-import threading
 import cherrypy
 
 from . import Manager
@@ -27,7 +24,6 @@ class Worker:
         self.state = WorkerState.startup
         self.current_job = None
         self.considering_job = None
-        self.lock = threading.RLock()
         self.warnings = {}
         self.all_plugins = {}
         self.plugins = set()
@@ -52,13 +48,6 @@ class Worker:
             "privileged": self.privileged
         }
 
-    def locked(func):
-        @functools.wraps(func)
-        def lock_wrapper(self, *args, **kwargs):
-            with self.lock:
-                return func(self, *args, **kwargs)
-        return lock_wrapper
-
     def add_active_plugin(self, plugin):
         self.plugins.add(plugin)
         cherrypy.engine.publish("worker-change", self)
@@ -72,9 +61,7 @@ class Worker:
             self.warnings[key] = msg
             cherrypy.engine.publish("worker-change", self)
 
-    @locked
-    def received_message(self, message):
-        data = json.loads(message.data)
+    def received_message(self, data):
         command = data.get("command")
 
         if command == "startup-complete":
@@ -161,7 +148,6 @@ class Worker:
         else:
             self.logger.warning(f"Unknown or unexpected command {command}: {pprint.pformat(data)}")
 
-    @locked
     def consider(self, job):
         assert self.considering_job is None
         assert self.state is WorkerState.idle
@@ -172,18 +158,16 @@ class Worker:
         cherrypy.engine.publish("worker-state-change", self)
         cherrypy.engine.publish("worker-change", self)
 
-    @locked
     def job_stopped(self, job):
         assert self.considering_job is job or self.current_job is job
         self.send_command("stop-job", job_id=job.id)
 
     def send_command(self, command, **args):
-        self.ws.send(json.dumps({
+        self.ws.send_json({
             "command": command,
             "args": args
-        }))
+        })
 
-    @locked
     def disconnect(self):
         if self.state is WorkerState.working:
             self.current_job.aborted(self, {})
@@ -204,15 +188,7 @@ class WorkerManager(Manager):
         self.worker_id = itertools.count()
         self.workers = {}
         self.free_workers = set()
-        self.lock = threading.RLock()
         self.fw_protection = False
-
-    def locked(func):
-        @functools.wraps(func)
-        def lock_wrapper(self, *args, **kwargs):
-            with self.lock:
-                return func(self, *args, **kwargs)
-        return lock_wrapper
 
     def start(self):
         self.bus.log("WM: startup")
@@ -225,7 +201,6 @@ class WorkerManager(Manager):
     def view_workers(self):
         return self.workers.copy()
 
-    @locked
     def worker_connected(self, ws):
         id = next(self.worker_id)
         self.logger.info(f"New worker connected, id={id}, ip={ws.address}")
@@ -233,7 +208,6 @@ class WorkerManager(Manager):
         ws.worker_id = id
         worker.send_command("startup", id=id)
 
-    @locked
     def worker_disconnected(self, ws):
         id = ws.worker_id
         self.logger.info(f"Worker {id} disconnected")
@@ -243,9 +217,8 @@ class WorkerManager(Manager):
     # To ensure multiple free-workers events are not being handled at once we only fire the event when a worker
     # becomes idle. The callbacks registered to free-workers must only take the workers to the considering/working
     # state, not to the idle state. This ensures that more free-workers events are not generated which could cause
-    # inefficiencies/deadlocks/assertion failures.
+    # inefficiencies/recursion/assertion failures.
 
-    @locked
     def worker_state_change(self, worker):
         if worker.state == WorkerState.idle:
             self.free_workers.add(worker)
@@ -263,6 +236,5 @@ class WorkerManager(Manager):
         else:
             self.free_workers.discard(worker)
 
-    @locked
     def view_free_workers(self):
         return self.free_workers.copy()
