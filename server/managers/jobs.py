@@ -37,7 +37,7 @@ class Job:
             "id": self.id,
             "state": self.state.name,
             "args": self.args,
-            "plugin": self.plugin,
+            "plugin": self.plugin.id,
             "rejected_by": [w.id for w in self.rejected_by],
             "considered_by": self.considered_by.id if self.considered_by else None,
             "performed_by": self.performed_by.id if self.performed_by else None,

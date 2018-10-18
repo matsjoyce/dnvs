@@ -30,6 +30,7 @@ export class Worker extends Item {
 
     renderSemiCollapsedText() {
         return <>
+            {this.state.data.privileged ? <span className="text-primary">PRIV </span> : null}
             {this.state.data.address}
             {ifNotNU(this.state.data.plugins, ws => ws.length == 0 ? null : <span className="text-light"> [{ws.length} plugin(s)]</span>)}
             {ifNotNU(this.state.data.warnings, ws => ws.length == 0 ? null : <span className="text-warning"> [{ws.length} warning(s)]</span>)}
@@ -44,6 +45,7 @@ export class Worker extends Item {
                     <span className={"text-" + this.color_for_state()}>{this.state.data.state}</span>
                 }/>
                 <ItemTableRow name="Address" value={this.state.data.address}/>
+                <ItemTableRow name="Privileged" value={this.state.data.privileged ? "Yes" : "No"}/>
                 <ItemTableRow name="Current Job" value={
                     ifNotNU(this.state.data.current_job, id => <Job id={id} key={id} />)
                 }/>

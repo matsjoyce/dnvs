@@ -3,6 +3,7 @@ import json
 from ws4py.server.cherrypyserver import WebSocketPlugin, WebSocketTool
 from ws4py.websocket import WebSocket
 import logging
+import threading
 
 
 logger = logging.getLogger(__name__)
@@ -14,8 +15,10 @@ class WebsocketHandler(WebSocket):
         self.name = name
         self.address = None
         self.handler = None
+        self.lock = threading.RLock()
 
     def received_message(self, message):
+        logger.debug(f"[{self.name}] From {self.address}: {message.data}")
         if self.handler:
             try:
                 self.handler.received_message(message)
@@ -31,7 +34,9 @@ class WebsocketHandler(WebSocket):
         cherrypy.engine.publish(self.name + "-disconnected", self)
 
     def send_json(self, data):
-        self.send(json.dumps(data))
+        with self.lock:
+            logger.debug(f"[{self.name}] To {self.address}: {data}")
+            self.send(json.dumps(data))
 
     @classmethod
     def with_name(cls, name):

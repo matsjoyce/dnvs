@@ -28,9 +28,13 @@ class Worker:
         self.current_job = None
         self.considering_job = None
         self.lock = threading.RLock()
-        self.warnings = []
+        self.warnings = {}
         self.all_plugins = {}
         self.plugins = set()
+        self.privileged = False
+
+    def __str__(self):
+        return f"Worker({self.id!r}, {self.address!r})"
 
     @property
     def address(self):
@@ -43,8 +47,9 @@ class Worker:
             "state": self.state.name,
             "current_job": self.current_job.id if self.current_job else None,
             "considering_job": self.considering_job.id if self.considering_job else None,
-            "plugins": list(self.plugins),
-            "warnings": self.warnings
+            "plugins": [p.id for p in self.plugins],
+            "warnings": list(self.warnings.values()),
+            "privileged": self.privileged
         }
 
     def locked(func):
@@ -53,6 +58,19 @@ class Worker:
             with self.lock:
                 return func(self, *args, **kwargs)
         return lock_wrapper
+
+    def add_active_plugin(self, plugin):
+        self.plugins.add(plugin)
+        cherrypy.engine.publish("worker-change", self)
+
+    def remove_active_plugin(self, plugin):
+        self.plugins.remove(plugin)
+        cherrypy.engine.publish("worker-change", self)
+
+    def add_warning(self, key, msg):
+        if self.warnings.get(key) != msg:
+            self.warnings[key] = msg
+            cherrypy.engine.publish("worker-change", self)
 
     @locked
     def received_message(self, message):
@@ -63,9 +81,11 @@ class Worker:
             assert self.state is WorkerState.startup
             self.state = WorkerState.idle
             self.all_plugins = {p["id"]: p for p in data["args"]["plugins"]}
+            self.privileged = data["args"]["privileged"]
 
             cherrypy.engine.publish("worker-plugins-changed", self)
             cherrypy.engine.publish("worker-state-change", self)
+            cherrypy.engine.publish("worker-change", self)
 
         elif command == "accept-job":
             assert data["args"]["job_id"] == self.considering_job.id
@@ -79,6 +99,7 @@ class Worker:
             self.state = WorkerState.working
 
             cherrypy.engine.publish("worker-state-change", self)
+            cherrypy.engine.publish("worker-change", self)
 
         elif command == "reject-job":
             assert data["args"]["job_id"] == self.considering_job.id
@@ -90,6 +111,7 @@ class Worker:
             self.considering_job = None
             self.state = WorkerState.idle
             cherrypy.engine.publish("worker-state-change", self)
+            cherrypy.engine.publish("worker-change", self)
 
         elif command == "finished-job":
             assert data["args"]["job_id"] == self.current_job.id
@@ -100,6 +122,7 @@ class Worker:
             self.current_job = None
             self.state = WorkerState.idle
             cherrypy.engine.publish("worker-state-change", self)
+            cherrypy.engine.publish("worker-change", self)
 
         elif command == "abort-job":
             assert data["args"]["job_id"] == self.current_job.id
@@ -110,6 +133,7 @@ class Worker:
             self.current_job = None
             self.state = WorkerState.idle
             cherrypy.engine.publish("worker-state-change", self)
+            cherrypy.engine.publish("worker-change", self)
 
         elif command == "fail-job":
             assert data["args"]["job_id"] == self.current_job.id
@@ -120,14 +144,19 @@ class Worker:
             self.current_job = None
             self.state = WorkerState.idle
             cherrypy.engine.publish("worker-state-change", self)
+            cherrypy.engine.publish("worker-change", self)
 
         elif command == "stopped-job":
-            assert data["args"]["job_id"] == self.considering_job.id or data["args"]["job_id"] == self.current_job.id
             assert self.state is WorkerState.considering or self.state is WorkerState.working
+            if self.state is WorkerState.considering:
+                assert data["args"]["job_id"] == self.considering_job.id
+            else:
+                assert data["args"]["job_id"] == self.current_job.id
 
             self.considering_job = self.current_job = None
             self.state = WorkerState.idle
             cherrypy.engine.publish("worker-state-change", self)
+            cherrypy.engine.publish("worker-change", self)
 
         else:
             self.logger.warning(f"Unknown or unexpected command {command}: {pprint.pformat(data)}")
@@ -139,8 +168,9 @@ class Worker:
         job.considered(self)
         self.considering_job = job
         self.state = WorkerState.considering
-        self.send_command("consider-job", job_id=job.id, plugin=job.plugin, args=job.args)
+        self.send_command("consider-job", job_id=job.id, plugin=job.plugin.id, args=job.args)
         cherrypy.engine.publish("worker-state-change", self)
+        cherrypy.engine.publish("worker-change", self)
 
     @locked
     def job_stopped(self, job):
@@ -164,6 +194,7 @@ class Worker:
         self.state = WorkerState.disconnected
         cherrypy.engine.publish("worker-state-change", self)
         cherrypy.engine.publish("worker-plugins-changed", self)
+        cherrypy.engine.publish("worker-change", self)
 
 
 class WorkerManager(Manager):

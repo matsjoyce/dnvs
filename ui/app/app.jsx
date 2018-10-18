@@ -13,17 +13,17 @@ export class App extends React.Component {
   constructor(props) {
         super(props);
         this.state = {
-            view: "jobs"
+            view: "networks"
         };
     }
 
-    change_to_network = () => this.setState({view: "network"});
+    change_to_network = () => this.setState({view: "networks"});
     change_to_workers = () => this.setState({view: "workers"});
     change_to_jobs = () => this.setState({view: "jobs"});
     change_to_plugins = () => this.setState({view: "plugins"});
 
     current_view() {
-        if (this.state.view == "network") {
+        if (this.state.view == "networks") {
             return <NetworksView />
         }
         else if (this.state.view == "workers") {
@@ -43,7 +43,7 @@ export class App extends React.Component {
                 <a className="navbar-brand" href="#">DNVS</a>
                 <div className="btn-group" role="group">
                     <button type="button"
-                            className={"btn" + (this.state.view == "network" ? " btn-primary" : " btn-secondary")}
+                            className={"btn" + (this.state.view == "networks" ? " btn-primary" : " btn-secondary")}
                             onClick={this.change_to_network} >
                         Network
                     </button>

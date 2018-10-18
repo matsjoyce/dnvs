@@ -2,6 +2,8 @@ import logging
 import json
 import pprint
 import threading
+import ctypes
+import os
 
 from ws4py.client.threadedclient import WebSocketClient
 
@@ -38,8 +40,15 @@ class Worker(WebSocketClient):
                 else:
                     logger.warning(f"Plugin {plugin} is not available")
 
+            try:
+                privileged = os.getuid() == 0
+            except AttributeError:
+                privileged = ctypes.windll.shell32.IsUserAnAdmin() != 0
+
             logger.info(f"Startup complete, assigned worker id {self.id}")
-            self.send_command("startup-complete", plugins=[pl.info() for pl in self.plugins.values()])
+            self.send_command("startup-complete",
+                              plugins=[pl.info() for pl in self.plugins.values()],
+                              privileged=privileged)
 
         elif command == "consider-job":
             self.job_thread = threading.Thread(target=self.consider_job, args=(data,))
@@ -50,6 +59,8 @@ class Worker(WebSocketClient):
                 logger.warning(f"Stopping job {self.job}")
                 self.job.stop()
                 async_raise(self.job_thread, StopJob)
+            else:
+                logger.warning(f"Job stop requested, but no job to stop")
 
         else:
             logger.warning(f"Unknown or unexpected command {command}: {pprint.pformat(data)}")

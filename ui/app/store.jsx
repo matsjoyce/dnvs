@@ -12,12 +12,6 @@ class DataActions {
         return (dispatch) => {
             dispatch();
             this.websocket = new WebSocket("ws://" + window.location.host + "/api/ws/broadcast");
-            this.websocket.onopen = () => {
-                DATA_ACTIONS.refetchJobs();
-                DATA_ACTIONS.refetchWorkers();
-                DATA_ACTIONS.refetchPlugins();
-                DATA_ACTIONS.refetchNetworks();
-            };
             this.websocket.onmessage = this.updateFromWS;
             this.websocket.onclose = () => {
                 this.updateJobs([]);

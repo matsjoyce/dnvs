@@ -66,11 +66,27 @@ class Trigger:
         }
 
 
-class Plugin(abc.ABC):
+class PluginMeta(abc.ABCMeta):
+    def __new__(mcls, name, bases, namespace, **kwargs):
+        cls = super().__new__(mcls, name, bases, namespace, **kwargs)
+
+        if not cls.__abstractmethods__:
+            assert "ID" in cls.__dict__
+            assert "VERSION" in cls.__dict__
+            assert hasattr(cls, "TARGET") and cls.TARGET in ("network", "node")
+            if not hasattr(cls, "TRIGGERS"):
+                cls.TRIGGERS = [Trigger(conditions=[Always()], schedule=OneShot())]
+
+            REGISTERED_PLUGINS.add(cls)
+        return cls
+
+
+class Plugin(metaclass=PluginMeta):
     def __init__(self, args, defs):
         super().__init__()
         self.args = args
         self.defs = defs
+        self.logger = logging.getLogger(self.__class__.__module__)
 
     @abc.abstractmethod
     def run(self):
@@ -82,16 +98,6 @@ class Plugin(abc.ABC):
     @classmethod
     def available(cls, defs):
         return True
-
-    @classmethod
-    def __init_subclass__(cls):
-        assert "ID" in cls.__dict__
-        assert "VERSION" in cls.__dict__
-        assert hasattr(cls, "TARGET") and cls.TARGET in ("network", "node")
-        if not hasattr(cls, "TRIGGERS"):
-            cls.TRIGGERS = [Trigger(conditions=[Always()], schedule=OneShot())]
-
-        REGISTERED_PLUGINS.add(cls)
 
     @classmethod
     def info(cls):

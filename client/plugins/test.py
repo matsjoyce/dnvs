@@ -20,8 +20,9 @@ class TestPlugin(Plugin):
     def run(self):
         time.sleep(random.randrange(3, 30))
 
-    def stop(self):
-        pass
+    @classmethod
+    def available(cls, defs):
+        return defs.get("T", False)
 
 
 class UnavailableTestPlugin(Plugin):
@@ -32,12 +33,9 @@ class UnavailableTestPlugin(Plugin):
     def run(self):
         pass
 
-    def stop(self):
-        pass
-
     @classmethod
     def available(cls, defs):
-        return defs.get("UA", False)
+        return defs.get("UA", False) and defs.get("T", False)
 
 
 class Test2Plugin(Plugin):
@@ -52,5 +50,6 @@ class Test2Plugin(Plugin):
     def run(self):
         print(self.args)
 
-    def stop(self):
-        pass
+    @classmethod
+    def available(cls, defs):
+        return defs.get("T", False)
