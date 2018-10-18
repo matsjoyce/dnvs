@@ -11,9 +11,11 @@ class DataActions {
     connectWS() {
         return (dispatch) => {
             dispatch();
+            this.wsConnected(true);
             this.websocket = new WebSocket("ws://" + window.location.host + "/api/ws/broadcast");
             this.websocket.onmessage = this.updateFromWS;
             this.websocket.onclose = () => {
+                this.wsConnected(false);
                 this.updateJobs([]);
                 this.updateWorkers([]);
                 this.updatePlugins([]);
@@ -21,6 +23,9 @@ class DataActions {
                 window.setTimeout(DATA_ACTIONS.connectWS, 5000);
             }
         }
+    }
+    wsConnected(data) {
+        return data;
     }
     updateFromWS(message) {
         return JSON.parse(message.data);
@@ -69,6 +74,7 @@ class DataStore {
     constructor() {
         this.bindListeners({
             handleUpdateFromWS: DATA_ACTIONS.UPDATE_FROM_WS,
+            handleWsConnected: DATA_ACTIONS.WS_CONNECTED,
 
             handleUpdateJobs: DATA_ACTIONS.UPDATE_JOBS,
             handleRefetchJobs: DATA_ACTIONS.REFETCH_JOBS,
@@ -82,6 +88,7 @@ class DataStore {
             handleUpdatePlugins: DATA_ACTIONS.UPDATE_PLUGINS,
             handleRefetchPlugins: DATA_ACTIONS.REFETCH_PLUGINS,
         });
+        this.ws_connected = false;
         this.jobs = {};
         this.workers = {};
         this.plugins = {};
@@ -104,6 +111,10 @@ class DataStore {
         else {
             console.log(data)
         }
+    }
+
+    handleWsConnected(data) {
+        this.ws_connected = data;
     }
 
     handleUpdateJobs(data) {
